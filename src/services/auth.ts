@@ -1,20 +1,13 @@
-import { api } from './api';
+// src/services/auth.ts
+import { Configuration, UserControllerApiFp } from './generated';
+import { apiClient } from './apiClient';
+import { env } from '../utils/env';
 
-export type LoginPayload = { email: string; password: string };
-export type User = { id: string; email: string; name?: string };
-export type AuthResponse = { user: User; token: string };
+const config = new Configuration({ basePath: env.baseURL });
 
-export const login = async (payload: LoginPayload): Promise<AuthResponse> => {
-  const { data } = await api.post('/user/login', payload);
-  return data;
-};
+const userApi = UserControllerApiFp(config);
 
-export const register = async (payload: LoginPayload & { name?: string }): Promise<AuthResponse> => {
-  const { data } = await api.post('/user', payload);
-  return data;
-};
-
-export const me = async (): Promise<User> => {
-  const { data } = await api.get('/auth/me');
-  return data;
+export const login = async (userDto: { username: string; password: string }) => {
+  const request = await userApi.login(userDto);
+  return request(apiClient, env.baseURL); 
 };

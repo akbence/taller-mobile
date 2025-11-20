@@ -1,10 +1,12 @@
 // src/screens/Auth/LoginScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
-import { login } from '../../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppDispatch } from '../../store';
 import { setAuth } from '../../store/authSlice';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserControllerApiFp, Configuration, TokenResponse } from '../../services/generated';
+import { apiClient } from '../../services/apiClient';
+import { env } from '../../utils/env';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -13,10 +15,19 @@ export default function LoginScreen() {
 
   const onSubmit = async () => {
     try {
-      const res = await login({ username, password });
-      await AsyncStorage.setItem('authToken', res.token); 
-      dispatch(setAuth({ user: res.user, token: res.token })); 
+      const config = new Configuration({ basePath: env.baseURL });
+      const loginFn = await UserControllerApiFp(config).login({ username, password });
+      const response = await loginFn(apiClient, env.baseURL);
+      const data: TokenResponse = response.data;
+
+      if (!data.token) {
+        throw new Error('Token missing from response');
+      }
+
+      await AsyncStorage.setItem('authToken', data.token);
+      dispatch(setAuth({ user: null, token: data.token })); // ha nincs user, null-t küldünk
     } catch (e: any) {
+      console.error('Login error:', e);
       Alert.alert('Login failed', e?.message ?? 'Unknown error');
     }
   };

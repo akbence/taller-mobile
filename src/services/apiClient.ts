@@ -1,14 +1,14 @@
 import axios from 'axios';
-import { env } from '../utils/env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { env } from '../utils/env';
 
-export const api = axios.create({
+export const apiClient = axios.create({
   baseURL: env.baseURL,
   timeout: 10000,
 });
 
-api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('authToken'); // token betöltése storage-ból
+apiClient.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
