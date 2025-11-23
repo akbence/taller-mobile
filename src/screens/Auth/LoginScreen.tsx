@@ -25,7 +25,7 @@ export default function LoginScreen() {
       }
 
       await AsyncStorage.setItem('authToken', data.token);
-      dispatch(setAuth({ user: null, token: data.token })); // ha nincs user, null-t küldünk
+      dispatch(setAuth({ user: null, token: data.token })); 
     } catch (e: any) {
       console.error('Login error:', e);
       Alert.alert('Login failed', e?.message ?? 'Unknown error');

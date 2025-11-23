@@ -15,7 +15,7 @@ export default function HomeScreen({ navigation }: any) {
       dispatch(clearAuth());
     } catch (error) {
       console.error('Logout failed:', error);
-    } 
+    }
   };
 
   return (
@@ -26,7 +26,32 @@ export default function HomeScreen({ navigation }: any) {
       <Text style={{ marginBottom: 24 }}>
         You’re now logged in to Tallér Mobile.
       </Text>
-      <Button title="View Items" onPress={() => navigation.navigate('Items')} />
+
+      {/* Navigation buttons to other screens */}
+      <Button
+        title="Create New Account Containers"
+        onPress={() => navigation.navigate('AccountContainer')}
+      />
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title="Manage Accounts"
+          onPress={() => navigation.navigate('Account')}
+        />
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title="Manage Categories"
+          onPress={() => navigation.navigate('Category')}
+        />
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <Button
+          title="Add Transaction"
+          onPress={() => navigation.navigate('Transaction')}
+        />
+      </View>
+
+      {/* Logout */}
       <View style={{ marginTop: 16 }}>
         <Button title="Logout" color="red" onPress={logout} />
       </View>
