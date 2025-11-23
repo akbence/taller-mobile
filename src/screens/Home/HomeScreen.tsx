@@ -2,14 +2,20 @@ import React from 'react';
 import { View, Text, Button } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { clearAuth } from '../../store/authSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }: any) {
   const user = useAppSelector((s) => s.auth.user);
   const dispatch = useAppDispatch();
 
-  const logout = () => {
-    globalThis.__AUTH_TOKEN__ = undefined;
-    dispatch(clearAuth());
+  const logout = async () => {
+    try {
+      await AsyncStorage.clear();
+      console.log('User logged out, AsyncStorage cleared.');
+      dispatch(clearAuth());
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } 
   };
 
   return (
