@@ -29,6 +29,8 @@ import {
 import { env } from '../../utils/env';
 import * as Location from 'expo-location';
 import SlideDownBanner from '../../components/SlideDownBanner';
+import { useBanner } from '../../components/BannerContext'
+
 
 type Currency = 'EUR' | 'USD' | 'HUF' | 'CHF';
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -39,8 +41,8 @@ const accountControllerApi = new AccountControllerApi(config, undefined, apiClie
 const categoryControllerApi = new CategoryControllerApi(config, undefined, apiClient);
 const transactionControllerApi = new TransactionControllerApi(config, undefined, apiClient);
 
-export default function CreateTransactionScreen({ navigation, route }: any) {
-  const { showBanner } = route.params;
+export default function CreateTransactionScreen({ navigation }: any) {
+  const { showBanner } = useBanner();
   const user = useAppSelector((s) => s.auth.user);
 
   // --- Form state ---
@@ -220,8 +222,7 @@ export default function CreateTransactionScreen({ navigation, route }: any) {
         category: { id: selectedCategoryId! } as CategoryDto,
       };
       await transactionControllerApi.createTransaction(payload);
-      showBanner("Transaction created successfully!");
-
+      showBanner("Transaction created successfully!", "success");
 
       // Reset form
       setDescription('');
@@ -235,12 +236,12 @@ export default function CreateTransactionScreen({ navigation, route }: any) {
       setLongitude('0.0');
       setTransactionDate(new Date());
       // reset form...
-      if (navigation?.goBack) navigation.goBack();
     } catch (error: any) {
       console.error('Create transaction failed:', error);
-      showBanner("Error creating transaction");
+      showBanner("Error creating transaction", "error");
     } finally {
       setSubmitting(false);
+      if (navigation?.goBack) navigation.goBack();
     }
   };
 

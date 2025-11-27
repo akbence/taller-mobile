@@ -18,6 +18,7 @@ const Stack = createNativeStackNavigator();
 export default function RootNavigator() {
   const token = useAppSelector((s) => s.auth.token);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+  const [bannerType, setBannerType] = useState<'success' | 'error' | 'info' | null >(null);
 
   return (
       <Stack.Navigator>
@@ -39,19 +40,7 @@ export default function RootNavigator() {
             <Stack.Screen
               name="Home"
               component={HomeScreen}
-              options={{
-                header: () => (
-                  <View>
-                    <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Tallér</Text>
-                    {bannerMessage && (
-                      <SlideDownBanner
-                        message={bannerMessage}
-                        onHide={() => setBannerMessage(null)}
-                      />
-                    )}
-                  </View>
-                ),
-              }}
+              options={{title: 'Home'}}
             />
             <Stack.Screen
               name="AccountContainer"
@@ -71,7 +60,6 @@ export default function RootNavigator() {
             <Stack.Screen
               name="CreateTransaction"
               component={CreateTransactionScreen}
-              initialParams={{ showBanner: (msg: string) => setBannerMessage(msg) }}
               options={{ title: 'Create Transaction' }}
             />
             <Stack.Screen

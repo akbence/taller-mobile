@@ -5,6 +5,7 @@ import { store, useAppDispatch } from './src/store';
 import { setAuth } from './src/store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RootNavigator from './src/navigation/RootNavigator';
+import { BannerProvider } from './src/components/BannerContext';
 
 function AppLoader() {
   const dispatch = useAppDispatch();
@@ -17,7 +18,7 @@ function AppLoader() {
           // const user = await me(); 
           // dispatch(setAuth({ user, token }));
         } catch {
-          await AsyncStorage.removeItem('authToken'); 
+          await AsyncStorage.removeItem('authToken');
         }
       }
     };
@@ -30,9 +31,11 @@ function AppLoader() {
 export default function App() {
   return (
     <Provider store={store}>
-      <NavigationContainer>
-        <AppLoader />
-      </NavigationContainer>
+      <BannerProvider>
+        <NavigationContainer>
+          <AppLoader />
+        </NavigationContainer>
+      </BannerProvider>
     </Provider>
   );
 }

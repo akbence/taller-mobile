@@ -4,9 +4,13 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { clearAuth } from '../../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ServerStatusBar from './ServerStatusBar';
+import { useBanner } from '../../components/BannerContext'
+import SlideDownBanner from '../../components/SlideDownBanner';
+
 
 export default function HomeScreen({ navigation }: any) {
   const user = useAppSelector((s) => s.auth.user);
+  const { banner } = useBanner();
   const dispatch = useAppDispatch();
 
   const logout = async () => {
@@ -19,6 +23,10 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   return (
+    <>
+      {banner.message ? (
+        <SlideDownBanner message={banner.message} type={banner.type}/>
+      ) : null}
       <View style={{ flex: 1 }}>
         <View style={{ padding: 16 }}>
           <Text style={{ fontSize: 24, marginBottom: 12 }}>
@@ -51,5 +59,6 @@ export default function HomeScreen({ navigation }: any) {
         </View>
         <ServerStatusBar pollIntervalMs={5000} />
       </View>
+    </>
   );
 }
