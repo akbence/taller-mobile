@@ -33,8 +33,8 @@ export interface AccountTransactionDto {
     'transactionTime'?: string;
     'transactionType'?: AccountTransactionDtoTransactionTypeEnum;
     'transferTargetAccountId'?: string;
-    'targetAmount'?: number;
-    'account'?: AccountDto;
+    'currency'?: AccountTransactionDtoCurrencyEnum;
+    'targetAccount'?: AccountDto;
     'category'?: CategoryDto;
 }
 
@@ -45,5 +45,13 @@ export const AccountTransactionDtoTransactionTypeEnum = {
 } as const;
 
 export type AccountTransactionDtoTransactionTypeEnum = typeof AccountTransactionDtoTransactionTypeEnum[keyof typeof AccountTransactionDtoTransactionTypeEnum];
+export const AccountTransactionDtoCurrencyEnum = {
+    Chf: 'CHF',
+    Eur: 'EUR',
+    Huf: 'HUF',
+    Usd: 'USD'
+} as const;
+
+export type AccountTransactionDtoCurrencyEnum = typeof AccountTransactionDtoCurrencyEnum[keyof typeof AccountTransactionDtoCurrencyEnum];
 
 

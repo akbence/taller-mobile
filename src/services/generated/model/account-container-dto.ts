@@ -20,16 +20,6 @@ import type { AccountDto } from './account-dto';
 export interface AccountContainerDto {
     'id'?: string;
     'name'?: string;
-    'accountType'?: AccountContainerDtoAccountTypeEnum;
     'subaccounts'?: Array<AccountDto>;
 }
-
-export const AccountContainerDtoAccountTypeEnum = {
-    Checking: 'CHECKING',
-    Savings: 'SAVINGS',
-    Cash: 'CASH'
-} as const;
-
-export type AccountContainerDtoAccountTypeEnum = typeof AccountContainerDtoAccountTypeEnum[keyof typeof AccountContainerDtoAccountTypeEnum];
-
 
