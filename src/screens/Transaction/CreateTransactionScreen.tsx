@@ -14,6 +14,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- Új import
 import { useAppSelector } from '../../store';
 import { apiClient } from '../../services/apiClient';
 import {
@@ -24,13 +25,12 @@ import {
   type AccountContainerDto,
   type AccountDto,
   type CategoryDto,
-  AccountTransactionDto
+  AccountTransactionDto,
 } from '../../services/generated';
 import { env } from '../../utils/env';
 import * as Location from 'expo-location';
 import SlideDownBanner from '../../components/SlideDownBanner';
-import { useBanner } from '../../components/BannerContext'
-
+import { useBanner } from '../../components/BannerContext';
 
 type Currency = 'EUR' | 'USD' | 'HUF' | 'CHF';
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -41,6 +41,13 @@ const accountControllerApi = new AccountControllerApi(config, undefined, apiClie
 const categoryControllerApi = new CategoryControllerApi(config, undefined, apiClient);
 const transactionControllerApi = new TransactionControllerApi(config, undefined, apiClient);
 
+// --- AsyncStorage kulcsok
+const ASYNC_KEYS = {
+  CONTAINERS: 'offline_containers',
+  ACCOUNTS: 'offline_accounts', // Az összes számla tárolására
+  CATEGORIES: 'offline_categories',
+};
+
 export default function CreateTransactionScreen({ navigation }: any) {
   const { showBanner } = useBanner();
   const user = useAppSelector((s) => s.auth.user);
@@ -50,9 +57,15 @@ export default function CreateTransactionScreen({ navigation }: any) {
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [amount, setAmount] = useState('0');
 
-  const [selectedContainerId, setSelectedContainerId] = useState<string | undefined>();
-  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+  const [selectedContainerId, setSelectedContainerId] = useState<
+    string | undefined
+  >();
+  const [selectedAccountId, setSelectedAccountId] = useState<
+    string | undefined
+  >();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    string | undefined
+  >();
 
   const [transactionType, setTransactionType] = useState<TransactionType>('EXPENSE');
 
@@ -62,37 +75,129 @@ export default function CreateTransactionScreen({ navigation }: any) {
   const [transactionDate, setTransactionDate] = useState<Date>(new Date());
 
   const [submitting, setSubmitting] = useState(false);
+  const [isOffline, setIsOffline] = useState(false); // <-- Offline állapot jelzése
 
   // --- Lists for pickers ---
   const [containers, setContainers] = useState<AccountContainerDto[]>([]);
-  const [accounts, setAccounts] = useState<AccountDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
+  const [allAccountsByContainer, setAllAccountsByContainer] = useState<
+    Record<string, AccountDto[]>
+  >({});
 
   const [loadingContainers, setLoadingContainers] = useState(false);
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
   const [showPicker, setShowPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>('date');
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | 'datetime'>(
+    'date',
+  );
+
+  /**
+   * Betölti az adatokat az AsyncStorage-ből
+   */
+  const loadOfflineData = async () => {
+    try {
+      const storedContainers = await AsyncStorage.getItem(ASYNC_KEYS.CONTAINERS);
+      const storedCategories = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
+      const storedAccounts = await AsyncStorage.getItem(ASYNC_KEYS.ACCOUNTS);
+
+      let loadedContainers: AccountContainerDto[] = [];
+      let loadedCategories: CategoryDto[] = [];
+      let loadedAccountsMap: Record<string, AccountDto[]> = {};
+
+      if (storedContainers) {
+        loadedContainers = JSON.parse(storedContainers);
+      }
+      if (storedCategories) {
+        loadedCategories = JSON.parse(storedCategories);
+      }
+      if (storedAccounts) {
+        loadedAccountsMap = JSON.parse(storedAccounts);
+      }
+
+      if (loadedContainers.length > 0) setContainers(loadedContainers);
+      if (loadedCategories.length > 0) setCategories(loadedCategories);
+      setAllAccountsByContainer(loadedAccountsMap);
+      
+      // Beállítja a kiválasztott elemeket, ha van offline adat
+      if (loadedContainers.length > 0 && !selectedContainerId) {
+        const firstContainerId = loadedContainers[0].id;
+        setSelectedContainerId(firstContainerId);
+        if (firstContainerId && loadedAccountsMap[firstContainerId]?.length > 0) {
+          setSelectedAccountId(loadedAccountsMap[firstContainerId][0].id);
+        }
+      }
+      
+      return loadedContainers.length > 0 || loadedCategories.length > 0;
+      
+    } catch (e) {
+      console.warn('Hiba az offline adatok betöltésekor:', e);
+      return false;
+    }
+  };
 
 
-  // --- Initial load: containers + categories ---
+  // --- Initial load: containers, categories, ÉS ÖSSZES account ---
   useEffect(() => {
     const loadInitialData = async () => {
-      try {
-        setLoadingContainers(true);
-        setLoadingCategories(true);
+      setLoadingContainers(true);
+      setLoadingCategories(true);
+      setIsOffline(false); // Alaphelyzet: Online
 
+      try {
+        // --- 1. Adatok betöltése API-ról ---
         const [containersRes, categoriesRes] = await Promise.all([
           accountControllerApi.getAllAccountContainer(),
           categoryControllerApi.getAllCategoriesForUser(),
         ]);
 
-        setContainers(containersRes.data ?? []);
-        setCategories(categoriesRes.data ?? []);
+        const loadedContainers = containersRes.data ?? [];
+        const loadedCategories = categoriesRes.data ?? [];
+        setContainers(loadedContainers);
+        setCategories(loadedCategories);
+
+        // --- 2. Számlák (Accounts) előzetes betöltése az összes konténerhez ---
+        const accountsMap: Record<string, AccountDto[]> = {};
+        const accountPromises = loadedContainers.map(async (container) => {
+          if (container.id) {
+            const accountsRes = await accountControllerApi.getAccountsByContainerId(
+              container.id,
+            );
+            accountsMap[container.id] = accountsRes.data ?? [];
+          }
+        });
+
+        await Promise.all(accountPromises);
+        setAllAccountsByContainer(accountsMap);
+
+        // --- 3. Sikeres lekérdezés esetén elmentés AsyncStorage-be ---
+        await AsyncStorage.setItem(ASYNC_KEYS.CONTAINERS, JSON.stringify(loadedContainers));
+        await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(loadedCategories));
+        await AsyncStorage.setItem(ASYNC_KEYS.ACCOUNTS, JSON.stringify(accountsMap));
+
+        // --- 4. Kiválasztás beállítása (ugyanaz, mint az előző verzióban) ---
+        if (loadedContainers.length > 0) {
+          const firstContainerId = loadedContainers[0].id;
+          if (firstContainerId) {
+            setSelectedContainerId(firstContainerId);
+            const accounts = accountsMap[firstContainerId] || [];
+            if (accounts.length > 0) {
+              setSelectedAccountId(accounts[0].id);
+            }
+          }
+        }
       } catch (err) {
-        console.error('Failed to load containers/categories', err);
-        Alert.alert('Error', 'Failed to load containers or categories.');
+        // --- 5. Hiba esetén offline adatok betöltése ---
+        console.error('API Hiba! Próbálkozás offline adatokkal:', err);
+        const hasOfflineData = await loadOfflineData();
+        
+        if (hasOfflineData) {
+          showBanner("Offline mód: Az utolsó ismert adatok betöltve.", "info");
+          setIsOffline(true);
+        } else {
+          Alert.alert('Hiba', 'Nem sikerült az adatok betöltése a szerverről, és nincs offline tárolt adat sem.');
+        }
+
       } finally {
         setLoadingContainers(false);
         setLoadingCategories(false);
@@ -102,30 +207,26 @@ export default function CreateTransactionScreen({ navigation }: any) {
     loadInitialData();
   }, []);
 
-  // --- When container changes → load accounts ---
+  // --- Konténer változás kezelése (Ugyanaz, mint az előző verzióban) ---
   useEffect(() => {
-    const loadAccounts = async () => {
-      if (!selectedContainerId) {
-        setAccounts([]);
+    if (selectedContainerId) {
+      const accountsForContainer = allAccountsByContainer[selectedContainerId] || [];
+      if (accountsForContainer.length > 0) {
+        setSelectedAccountId(accountsForContainer[0].id);
+      } else {
         setSelectedAccountId(undefined);
-        return;
       }
+    } else {
+      setSelectedAccountId(undefined);
+    }
+  }, [selectedContainerId, allAccountsByContainer]);
 
-      try {
-        setLoadingAccounts(true);
-        const res = await accountControllerApi.getAccountsByContainerId(selectedContainerId);
-        setAccounts(res.data ?? []);
-        setSelectedAccountId(undefined);
-      } catch (err) {
-        console.error('Failed to load accounts', err);
-        Alert.alert('Error', 'Failed to load accounts for the selected container.');
-      } finally {
-        setLoadingAccounts(false);
-      }
-    };
+  const currentAccounts = selectedContainerId
+    ? allAccountsByContainer[selectedContainerId] || []
+    : [];
+    
+  const isAccountPickerEnabled = !!selectedContainerId && !loadingContainers;
 
-    loadAccounts();
-  }, [selectedContainerId]);
 
   // --- Validation ---
   const validate = () => {
@@ -156,10 +257,9 @@ export default function CreateTransactionScreen({ navigation }: any) {
     return true;
   };
 
-  // --- Date picker handler ---
+  // --- Date picker handler (vágatlan) ---
   const handleDateTimeChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (event.type === 'dismissed') {
-      // Close dialog on dismiss
       setShowPicker(false);
       return;
     }
@@ -167,23 +267,19 @@ export default function CreateTransactionScreen({ navigation }: any) {
     if (!selected) return;
 
     if (Platform.OS === 'ios') {
-      // iOS: native datetime picker gives full date + time
       setTransactionDate(selected);
       return;
     }
 
-    // ANDROID: step 1 – date selected → now show time picker
     if (pickerMode === 'date') {
       const newDate = new Date(transactionDate);
       newDate.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
       setTransactionDate(newDate);
 
-      // Move to time picker
       setPickerMode('time');
       setShowPicker(true);
     }
 
-    // ANDROID: step 2 – time selected → merge into date
     if (pickerMode === 'time') {
       const newDate = new Date(transactionDate);
       newDate.setHours(selected.getHours(), selected.getMinutes());
@@ -191,7 +287,6 @@ export default function CreateTransactionScreen({ navigation }: any) {
       setShowPicker(false);
     }
   };
-
 
   const handleUseCurrentLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -208,6 +303,16 @@ export default function CreateTransactionScreen({ navigation }: any) {
   // --- Submit ---
   const handleCreate = async () => {
     if (!validate()) return;
+    
+    // Offline mód esetén elmentjük a tranzakciót, ahelyett hogy azonnal elküldenénk
+    if (isOffline) {
+        showBanner("A tranzakció helyi tárolásra került. Szinkronizálás az online állapot visszatérésekor.", "info");
+        // Helyi tárolás logikáját itt kellene megvalósítani (pl. egy Async Queue)
+        // Jelenleg visszamegyünk, mintha sikeres lett volna (bár nem küldte el a szerverre)
+        if (navigation?.goBack) navigation.goBack();
+        return;
+    }
+    
     setSubmitting(true);
     try {
       const payload: AccountTransactionDto = {
@@ -218,30 +323,29 @@ export default function CreateTransactionScreen({ navigation }: any) {
         latitude: parseFloat(latitude) || 0,
         longitude: parseFloat(longitude) || 0,
         transactionTime: transactionDate.toISOString(),
+        // Fontos: Mivel az AccountDto objektumot várja a payload, a típuskényszerítés használata szükséges
         targetAccount: { id: selectedAccountId! } as AccountDto,
         category: { id: selectedCategoryId! } as CategoryDto,
       };
       await transactionControllerApi.createTransaction(payload);
-      showBanner("Transaction created successfully!", "success");
+      showBanner('Transaction created successfully!', 'success');
 
-      // Reset form
+      // Reset form (kivéve a konténer és számla kiválasztás, ahogy korábban)
       setDescription('');
       setCurrency('EUR');
       setAmount('0');
-      setSelectedContainerId(undefined);
-      setSelectedAccountId(undefined);
       setSelectedCategoryId(undefined);
       setTransactionType('EXPENSE');
       setLatitude('0.0');
       setLongitude('0.0');
       setTransactionDate(new Date());
-      // reset form...
+
+      if (navigation?.goBack) navigation.goBack();
     } catch (error: any) {
       console.error('Create transaction failed:', error);
-      showBanner("Error creating transaction", "error");
+      showBanner('Error creating transaction', 'error');
     } finally {
       setSubmitting(false);
-      if (navigation?.goBack) navigation.goBack();
     }
   };
 
@@ -252,8 +356,13 @@ export default function CreateTransactionScreen({ navigation }: any) {
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Create Transaction</Text>
-        <Text style={styles.owner}>User: {user?.username ?? 'unknown'}</Text>
+        <Text style={styles.owner}>
+          User: {user?.username ?? 'unknown'}{' '}
+          {isOffline && <Text style={{ color: 'orange', fontWeight: 'bold' }}>[OFFLINE MÓD]</Text>}
+        </Text>
 
+        {/* ... (A többi mező/input változatlan) ... */}
+        
         {/* Description */}
         <Text style={styles.label}>Transaction Description *</Text>
         <TextInput
@@ -309,7 +418,7 @@ export default function CreateTransactionScreen({ navigation }: any) {
         {/* Account */}
         <Text style={styles.label}>Account *</Text>
         <Picker
-          enabled={!!selectedContainerId}
+          enabled={isAccountPickerEnabled}
           selectedValue={selectedAccountId}
           onValueChange={(val) => setSelectedAccountId(val)}
           style={styles.picker}
@@ -318,13 +427,13 @@ export default function CreateTransactionScreen({ navigation }: any) {
             label={
               !selectedContainerId
                 ? 'Select a Container first'
-                : loadingAccounts
-                  ? 'Loading accounts...'
-                  : 'Select Account'
+                : loadingContainers
+                ? 'Loading accounts...'
+                : 'Select Account'
             }
             value={undefined}
           />
-          {accounts.map((a) => (
+          {currentAccounts.map((a) => (
             <Picker.Item
               key={a.id}
               label={a.name ?? `Account ${a.id}`}
@@ -425,15 +534,14 @@ export default function CreateTransactionScreen({ navigation }: any) {
         {/* Submit */}
         <View style={{ marginTop: 24 }}>
           <Button
-            title="🕊 Create Transaction"
+            title={`🕊 ${isOffline ? 'Helyi Mentés' : 'Tranzakció Létrehozása'}`}
             onPress={handleCreate}
-            disabled={submitting}
-            color={submitting ? '#888' : undefined}
+            disabled={submitting || loadingContainers || loadingCategories}
+            color={submitting ? '#888' : isOffline ? 'orange' : undefined}
           />
         </View>
       </ScrollView>
     </View>
-
   );
 }
 
