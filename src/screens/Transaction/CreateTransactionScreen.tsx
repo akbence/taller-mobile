@@ -46,6 +46,7 @@ const ASYNC_KEYS = {
   CONTAINERS: 'offline_containers',
   ACCOUNTS: 'offline_accounts', // Az összes számla tárolására
   CATEGORIES: 'offline_categories',
+  PENDING_TRANSACTIONS: 'offline_transaction_queue',
 };
 
 export default function CreateTransactionScreen({ navigation }: any) {
@@ -304,14 +305,7 @@ export default function CreateTransactionScreen({ navigation }: any) {
   const handleCreate = async () => {
     if (!validate()) return;
     
-    // Offline mód esetén elmentjük a tranzakciót, ahelyett hogy azonnal elküldenénk
-    if (isOffline) {
-        showBanner("A tranzakció helyi tárolásra került. Szinkronizálás az online állapot visszatérésekor.", "info");
-        // Helyi tárolás logikáját itt kellene megvalósítani (pl. egy Async Queue)
-        // Jelenleg visszamegyünk, mintha sikeres lett volna (bár nem küldte el a szerverre)
-        if (navigation?.goBack) navigation.goBack();
-        return;
-    }
+    
     
     setSubmitting(true);
     try {
@@ -327,6 +321,36 @@ export default function CreateTransactionScreen({ navigation }: any) {
         targetAccount: { id: selectedAccountId! } as AccountDto,
         category: { id: selectedCategoryId! } as CategoryDto,
       };
+
+      if (isOffline) {
+            try {
+                // Betöltjük a jelenlegi várólistát
+                const storedQueue = await AsyncStorage.getItem(ASYNC_KEYS.PENDING_TRANSACTIONS);
+                const queue: AccountTransactionDto[] = storedQueue ? JSON.parse(storedQueue) : [];
+                
+                // Hozzáadjuk az új tranzakciót
+                queue.push(payload);
+                
+                // Visszamentjük a teljes várólistát
+                await AsyncStorage.setItem(ASYNC_KEYS.PENDING_TRANSACTIONS, JSON.stringify(queue));
+
+                showBanner("Tranzakció helyi tárolásra került. Függő tranzakciók száma: " + queue.length, "info");
+                
+                // Reset form
+                setDescription('');
+                setAmount('0');
+
+                if (navigation?.goBack) navigation.goBack();
+            } catch (error) {
+                console.error('Hiba az offline mentéskor:', error);
+                showBanner('Hiba az offline tranzakció mentésekor.', 'error');
+            } finally {
+                setSubmitting(false);
+            }
+            return;
+        }
+
+
       await transactionControllerApi.createTransaction(payload);
       showBanner('Transaction created successfully!', 'success');
 

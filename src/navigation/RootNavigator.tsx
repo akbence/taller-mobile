@@ -7,6 +7,7 @@ import AccountContainerScreen from '../screens/AccountContainerCreation';
 import AccountScreen from '../screens/AccountScreen';
 import CategoryScreen from '../screens/CategoryScreen';
 import CreateTransactionScreen from '../screens/Transaction/CreateTransactionScreen';
+import PendingElementsScreen from '../screens/Offline/PendingElementsScreen'
 import ViewTransactionScreen from '../screens/Transaction/ViewTransactionScreen';
 import { useAppSelector } from '../store';
 import { View, Text } from 'react-native';
@@ -61,6 +62,11 @@ export default function RootNavigator() {
               name="CreateTransaction"
               component={CreateTransactionScreen}
               options={{ title: 'Create Transaction' }}
+            />
+            <Stack.Screen
+              name="PendingElements"
+              component={PendingElementsScreen}
+              options={{ title: 'Pending Elements' }}
             />
             <Stack.Screen
               name="ViewTransactions"

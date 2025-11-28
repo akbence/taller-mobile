@@ -52,7 +52,9 @@ export default function HomeScreen({ navigation }: any) {
           <View style={{ marginTop: 12 }}>
             <Button title="View Transactions" onPress={() => navigation.navigate('ViewTransactions')} />
           </View>
-
+          <View style={{ marginTop: 12 }}>
+            <Button title="View Pending Elements" onPress={() => navigation.navigate('PendingElements')} />
+          </View>
           <View style={{ marginTop: 16 }}>
             <Button title="Logout" color="red" onPress={logout} />
           </View>
