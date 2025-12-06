@@ -31,6 +31,7 @@ import { env } from '../../utils/env';
 import * as Location from 'expo-location';
 import SlideDownBanner from '../../components/SlideDownBanner';
 import { useBanner } from '../../components/BannerContext';
+import { OFFLINE_STORAGE_KEYS } from '../../utils/const';
 
 type Currency = 'EUR' | 'USD' | 'HUF' | 'CHF';
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -40,14 +41,6 @@ const config = new Configuration({ basePath: env.baseURL });
 const accountControllerApi = new AccountControllerApi(config, undefined, apiClient);
 const categoryControllerApi = new CategoryControllerApi(config, undefined, apiClient);
 const transactionControllerApi = new TransactionControllerApi(config, undefined, apiClient);
-
-// --- AsyncStorage kulcsok
-const ASYNC_KEYS = {
-  CONTAINERS: 'offline_containers',
-  ACCOUNTS: 'offline_accounts', // Az összes számla tárolására
-  CATEGORIES: 'offline_categories',
-  PENDING_TRANSACTIONS: 'offline_transaction_queue',
-};
 
 export default function CreateTransactionScreen({ navigation }: any) {
   const { showBanner } = useBanner();
@@ -98,9 +91,9 @@ export default function CreateTransactionScreen({ navigation }: any) {
    */
   const loadOfflineData = async () => {
     try {
-      const storedContainers = await AsyncStorage.getItem(ASYNC_KEYS.CONTAINERS);
-      const storedCategories = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
-      const storedAccounts = await AsyncStorage.getItem(ASYNC_KEYS.ACCOUNTS);
+      const storedContainers = await AsyncStorage.getItem(OFFLINE_STORAGE_KEYS.CONTAINERS);
+      const storedCategories = await AsyncStorage.getItem(OFFLINE_STORAGE_KEYS.CATEGORIES);
+      const storedAccounts = await AsyncStorage.getItem(OFFLINE_STORAGE_KEYS.ACCOUNTS);
 
       let loadedContainers: AccountContainerDto[] = [];
       let loadedCategories: CategoryDto[] = [];
@@ -172,9 +165,9 @@ export default function CreateTransactionScreen({ navigation }: any) {
         setAllAccountsByContainer(accountsMap);
 
         // --- 3. Sikeres lekérdezés esetén elmentés AsyncStorage-be ---
-        await AsyncStorage.setItem(ASYNC_KEYS.CONTAINERS, JSON.stringify(loadedContainers));
-        await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(loadedCategories));
-        await AsyncStorage.setItem(ASYNC_KEYS.ACCOUNTS, JSON.stringify(accountsMap));
+        await AsyncStorage.setItem(OFFLINE_STORAGE_KEYS.CONTAINERS, JSON.stringify(loadedContainers));
+        await AsyncStorage.setItem(OFFLINE_STORAGE_KEYS.CATEGORIES, JSON.stringify(loadedCategories));
+        await AsyncStorage.setItem(OFFLINE_STORAGE_KEYS.ACCOUNTS, JSON.stringify(accountsMap));
 
         // --- 4. Kiválasztás beállítása (ugyanaz, mint az előző verzióban) ---
         if (loadedContainers.length > 0) {
@@ -325,14 +318,14 @@ export default function CreateTransactionScreen({ navigation }: any) {
       if (isOffline) {
             try {
                 // Betöltjük a jelenlegi várólistát
-                const storedQueue = await AsyncStorage.getItem(ASYNC_KEYS.PENDING_TRANSACTIONS);
+                const storedQueue = await AsyncStorage.getItem(OFFLINE_STORAGE_KEYS.PENDING_TRANSACTIONS);
                 const queue: AccountTransactionDto[] = storedQueue ? JSON.parse(storedQueue) : [];
                 
                 // Hozzáadjuk az új tranzakciót
                 queue.push(payload);
                 
                 // Visszamentjük a teljes várólistát
-                await AsyncStorage.setItem(ASYNC_KEYS.PENDING_TRANSACTIONS, JSON.stringify(queue));
+                await AsyncStorage.setItem(OFFLINE_STORAGE_KEYS.PENDING_TRANSACTIONS, JSON.stringify(queue));
 
                 showBanner("Tranzakció helyi tárolásra került. Függő tranzakciók száma: " + queue.length, "info");
                 
@@ -382,7 +375,7 @@ export default function CreateTransactionScreen({ navigation }: any) {
         <Text style={styles.title}>Create Transaction</Text>
         <Text style={styles.owner}>
           User: {user?.username ?? 'unknown'}{' '}
-          {isOffline && <Text style={{ color: 'orange', fontWeight: 'bold' }}>[OFFLINE MÓD]</Text>}
+          {isOffline && <Text style={{ color: 'orange', fontWeight: 'bold' }}>[OFFLINE]</Text>}
         </Text>
 
         {/* ... (A többi mező/input változatlan) ... */}

@@ -20,6 +20,7 @@ import {
 } from '../../services/generated';
 import { apiClient } from '../../services/apiClient';
 import { env } from '../../utils/env';
+import { initialSync } from '../../services/syncService';
 
 // Kulcs a perzisztens tároláshoz
 const OFFLINE_AUTH_KEY = 'offlineAuthToken';
@@ -78,6 +79,8 @@ export default function LoginScreen() {
       // 1. Mentjük az új tokent perzisztensen
       await AsyncStorage.setItem(OFFLINE_AUTH_KEY, data.token);
       await AsyncStorage.setItem('authToken', data.token);
+      await AsyncStorage.setItem('username', username);
+      await initialSync(); 
 
       
       // 2. Frissítjük a Redux állapotot és belépünk az appba

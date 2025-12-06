@@ -10,9 +10,7 @@ import { apiClient } from '../../services/apiClient';
 import { env } from '../../utils/env';
 import { useBanner } from '../../components/BannerContext'; 
 
-const ASYNC_KEYS = {
-  PENDING_TRANSACTIONS: 'offline_transaction_queue',
-};
+import { OFFLINE_STORAGE_KEYS } from '../../utils/const';
 
 const config = new Configuration({ basePath: env.baseURL });
 const transactionControllerApi = new TransactionControllerApi(config, undefined, apiClient);
@@ -29,7 +27,7 @@ export default function PendingElementsScreen() {
     const loadPendingTransactions = useCallback(async () => {
         setLoading(true);
         try {
-            const storedQueue = await AsyncStorage.getItem(ASYNC_KEYS.PENDING_TRANSACTIONS);
+            const storedQueue = await AsyncStorage.getItem(OFFLINE_STORAGE_KEYS.PENDING_TRANSACTIONS);
             const queue: AccountTransactionDto[] = storedQueue ? JSON.parse(storedQueue) : [];
             setPendingTransactions(queue);
         } catch (error) {
@@ -73,7 +71,7 @@ export default function PendingElementsScreen() {
 
         // 1. Frissítjük az AsyncStorage-t a sikertelen tranzakciókkal
         try {
-            await AsyncStorage.setItem(ASYNC_KEYS.PENDING_TRANSACTIONS, JSON.stringify(failedTransactions));
+            await AsyncStorage.setItem(OFFLINE_STORAGE_KEYS.PENDING_TRANSACTIONS, JSON.stringify(failedTransactions));
             setPendingTransactions(failedTransactions); // Frissítjük a lokális állapotot
         } catch (e) {
             console.error('Hiba az AsyncStorage frissítésekor szinkronizálás után:', e);
