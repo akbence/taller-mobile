@@ -34,14 +34,15 @@ export interface AccountTransactionDto {
     'transactionType'?: AccountTransactionDtoTransactionTypeEnum;
     'transferTargetAccountId'?: string;
     'currency'?: AccountTransactionDtoCurrencyEnum;
-    'targetAccount'?: AccountDto;
+    'account'?: AccountDto;
     'category'?: CategoryDto;
 }
 
 export const AccountTransactionDtoTransactionTypeEnum = {
     Income: 'INCOME',
     Expense: 'EXPENSE',
-    Transfer: 'TRANSFER'
+    Transfer: 'TRANSFER',
+    Reimbursement: 'REIMBURSEMENT'
 } as const;
 
 export type AccountTransactionDtoTransactionTypeEnum = typeof AccountTransactionDtoTransactionTypeEnum[keyof typeof AccountTransactionDtoTransactionTypeEnum];

@@ -30,6 +30,41 @@ export const TransactionControllerApiAxiosParamCreator = function (configuration
     return {
         /**
          * 
+         * @param {Array<AccountTransactionDto>} accountTransactionDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBulkTransactions: async (accountTransactionDto: Array<AccountTransactionDto>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'accountTransactionDto' is not null or undefined
+            assertParamExists('createBulkTransactions', 'accountTransactionDto', accountTransactionDto)
+            const localVarPath = `/api/v1/transaction/bulk`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(accountTransactionDto, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @param {AccountTransactionDto} accountTransactionDto 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -103,6 +138,18 @@ export const TransactionControllerApiFp = function(configuration?: Configuration
     return {
         /**
          * 
+         * @param {Array<AccountTransactionDto>} accountTransactionDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createBulkTransactions(accountTransactionDto: Array<AccountTransactionDto>, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<AccountTransactionDto>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createBulkTransactions(accountTransactionDto, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['TransactionControllerApi.createBulkTransactions']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
          * @param {AccountTransactionDto} accountTransactionDto 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -135,6 +182,15 @@ export const TransactionControllerApiFactory = function (configuration?: Configu
     return {
         /**
          * 
+         * @param {Array<AccountTransactionDto>} accountTransactionDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createBulkTransactions(accountTransactionDto: Array<AccountTransactionDto>, options?: RawAxiosRequestConfig): AxiosPromise<Array<AccountTransactionDto>> {
+            return localVarFp.createBulkTransactions(accountTransactionDto, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
          * @param {AccountTransactionDto} accountTransactionDto 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -157,6 +213,16 @@ export const TransactionControllerApiFactory = function (configuration?: Configu
  * TransactionControllerApi - object-oriented interface
  */
 export class TransactionControllerApi extends BaseAPI {
+    /**
+     * 
+     * @param {Array<AccountTransactionDto>} accountTransactionDto 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createBulkTransactions(accountTransactionDto: Array<AccountTransactionDto>, options?: RawAxiosRequestConfig) {
+        return TransactionControllerApiFp(this.configuration).createBulkTransactions(accountTransactionDto, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * 
      * @param {AccountTransactionDto} accountTransactionDto 

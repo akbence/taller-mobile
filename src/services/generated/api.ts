@@ -16,6 +16,7 @@
 
 export * from './api/account-controller-api';
 export * from './api/category-controller-api';
+export * from './api/revolut-integration-controller-api';
 export * from './api/transaction-controller-api';
 export * from './api/user-controller-api';
 
