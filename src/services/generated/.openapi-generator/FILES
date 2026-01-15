@@ -1,6 +1,7 @@
 api.ts
 api/account-controller-api.ts
 api/category-controller-api.ts
+api/revolut-integration-controller-api.ts
 api/transaction-controller-api.ts
 api/user-controller-api.ts
 base.ts

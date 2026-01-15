@@ -9,6 +9,7 @@ import CategoryScreen from '../screens/CategoryScreen';
 import CreateTransactionScreen from '../screens/Transaction/CreateTransactionScreen';
 import PendingElementsScreen from '../screens/Offline/PendingElementsScreen'
 import ViewTransactionScreen from '../screens/Transaction/ViewTransactionScreen';
+import RevolutBulkTransactionScreen from '../screens/Integration/Revolut/BulkTransactionScreen';
 import { useAppSelector } from '../store';
 import { View, Text } from 'react-native';
 import SlideDownBanner from '../components/SlideDownBanner'
@@ -71,7 +72,13 @@ export default function RootNavigator() {
             <Stack.Screen
               name="ViewTransactions"
               component={ViewTransactionScreen}
-              options={{ title: 'View Transactions' }} />
+              options={{ title: 'View Transactions' }}
+            />
+            <Stack.Screen
+              name="RevolutPreprocessStatement"
+              component={RevolutBulkTransactionScreen}
+              options={{ title: 'Revolut Bulk Transaction' }}
+            />
           </>
         )}
       </Stack.Navigator>

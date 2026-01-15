@@ -93,6 +93,18 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        <View style={[styles.card, { marginTop: 16 }]}>
+                  <Text style={styles.label}>Integration: Revolut</Text>
+
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('RevolutPreprocessStatement')}
+                  >
+                    <Text style={styles.buttonText}>Preprocess statement.csv </Text>
+                  </TouchableOpacity>
+
+                </View>
+
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={logout}
